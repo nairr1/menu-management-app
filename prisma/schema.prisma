@@ -7,12 +7,235 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Menus {
+    id                  Int @id @default(autoincrement())
+    menuName            String @db.VarChar(50)
+    menuType            Int
+    position            Int
+    userId              String @db.VarChar(255)
+    updatedUserId       String @db.VarChar(255)             
+    createdAt           DateTime @default(now())
+    updatedAt           DateTime @updatedAt
+    menuAvailability    MenuAvailability[]
+    keypads             Keypads[]
+}
+
+model MenuAvailability {
+    id          Int @id @default(autoincrement())
+    menu        Menus @relation(fields: [menuId], references: [id]) 
+    menuId      Int
+    dayOfWeek   Int
+    startTime   String @db.VarChar(5)
+    endTime     String @db.VarChar(5)
+    available   Boolean
+}
+
+model Keypads {
+    id              Int @id @default(autoincrement())
+    menu            Menus @relation(fields: [menuId], references: [id]) 
+    menuId          Int
+    keypadName      String @db.VarChar(50)
+    position        Int
+    userId          String @db.VarChar(255)
+    updatedUserId   String @db.VarChar(255)           
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    keypadItems     KeypadItems[]
+}
+
+model KeypadItems {
+    id              Int @id @default(autoincrement())
+    keypad          Keypads @relation(fields: [keypadId], references: [id])
+    keypadId        Int
+    item            Int
+    position        Int
+}
+
+model Items {
+    id                  Int @id @default(autoincrement())
+    itemName            String @db.VarChar(50)
+    priceLevelOne       Int
+    priceLevelTwo       Int? 
+    priceLevelThree     Int?
+    description         String @db.VarChar(255)
+    image               String @db.VarChar(255)
+    category            ItemCategories @relation(fields: [categoryId], references: [id])
+    categoryId          Int
+    userId              String @db.VarChar(255)
+    updatedUserId       String @db.VarChar(255)           
+    createdAt           DateTime @default(now())
+    updatedAt           DateTime @updatedAt
+    itemRecipeMapping   ItemRecipeMapping[]
+    itemChoiceMapping   ItemChoiceMapping[]
+    choiceItems         ChoiceItems[]
+    itemLocationMapping ItemLocationMapping[]
+}
+
+model Ingredients {
+    id                  Int @id @default(autoincrement())
+    ingredientName      String @db.VarChar(50)
+    amount              Int
+    unit                Int
+    itemRecipeMapping   ItemRecipeMapping[]
+}
+
+model ItemRecipeMapping {
+    id              Int @id @default(autoincrement())
+    ingredient      Ingredients @relation(fields: [ingredientId], references: [id])
+    ingredientId    Int
+    parentItem      Items @relation(fields: [parentItemId], references: [id])
+    parentItemId    Int
+}
+
+model Choices {
+    id                  Int @id @default(autoincrement())
+    choiceName          String @db.VarChar(50)
+    selections          Int
+    required            Boolean
+    position            Int
+    description         String @db.VarChar(255)
+    userId              String @db.VarChar(255)
+    updatedUserId       String @db.VarChar(255)             
+    createdAt           DateTime @default(now())
+    updatedAt           DateTime @updatedAt
+    itemChoiceMapping   ItemChoiceMapping[]
+    choiceItems         ChoiceItems[]
+}
+
+model ItemChoiceMapping {
+    id              Int @id @default(autoincrement())
+    choice          Choices @relation(fields: [choiceId], references: [id])
+    choiceId        Int
+    parentItem      Items @relation(fields: [parentItemId], references: [id])
+    parentItemId    Int
+}
+
+model ChoiceItems {
+    id                      Int @id @default(autoincrement())
+    childItem               Items @relation(fields: [childItemId], references: [id])
+    childItemId             Int
+    choice                  Choices @relation(fields: [choiceId], references: [id])
+    choiceId                Int
+    updatedPriceLevelOne    Int?
+    updatedPriceLevelTwo    Int?
+    updatedPriceLevelThree  Int?
+    position                Int
+}
+
+model ItemLocationMapping {
+    id                      Int @id @default(autoincrement())
+    item                    Items @relation(fields: [itemId], references: [id])
+    itemId                  Int
+    location                Locations @relation(fields: [locationId], references: [id])
+    locationId              Int
+    locationPriceLevelOne   Int?
+    locationPriceLevelTwo   Int?
+    locationPriceLevelThree Int?
+}
+
+model ItemCategories {
+    id              Int @id @default(autoincrement())
+    categoryName    String @db.VarChar(50)
+    userId          String @db.VarChar(255)
+    updatedUserId   String @db.VarChar(255)             
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    items           Items[]
+}
+
+model Locations {
+    id                              Int @id @default(autoincrement())
+    locationName                    String @db.VarChar(50)
+    streetOne                       String @db.VarChar(50)
+    streetTwo                       String? @db.VarChar(50)
+    suburb                          String @db.VarChar(50)
+    state                           String @db.VarChar(50)
+    postcode                        String @db.VarChar(10)
+    country                         String @db.VarChar(50)
+    timezone                        String @db.VarChar(50)
+    phone                           String @db.VarChar(20)
+    googleMapsLink                  String? @db.VarChar(255)
+    userId                          String @db.VarChar(255)
+    updatedUserId                   String @db.VarChar(255)             
+    createdAt                       DateTime @default(now())
+    updatedAt                       DateTime @updatedAt
+    itemLocationMapping             ItemLocationMapping[]
+    locationStatusLogs              LocationStatusLogs[]
+    tradingHours                    TradingHours[]
+    customTradingHours              CustomTradingHours[]
+    publicHolidayLocationMapping    PublicHolidayLocationMapping[]
+    orderHeader                     OrderHeader[]
+}
+
+model LocationStatusLogs {
+    id          Int @id @default(autoincrement())
+    location    Locations @relation(fields: [locationId], references: [id])
+    locationId  Int
+    status      Int
+    lastOnline  DateTime @updatedAt
+    openNow     Boolean
+}
+
+model TradingHours {
+    id          Int @id @default(autoincrement())
+    location    Locations @relation(fields: [locationId], references: [id])
+    locationId  Int
+    dayOfWeek   Int
+    startTime   String @db.VarChar(5)
+    endTime     String @db.VarChar(5)
+    closed      Boolean
+}
+
+model CustomTradingHours {
+    id          Int @id @default(autoincrement())
+    location    Locations @relation(fields: [locationId], references: [id])
+    locationId  Int
+    day         Int
+    month       Int
+    year        Int
+    startTime   String @db.VarChar(5)
+    endTime     String @db.VarChar(5)
+    closed      Boolean
+}
+
+model PublicHolidays {
+    id                              Int @id @default(autoincrement())
+    date                            String @db.VarChar(5)
+    holidayName                     String @db.VarChar(50)
+    closed                          Boolean
+    publicHolidayLocationMapping    PublicHolidayLocationMapping[]
+    userId                          String @db.VarChar(255)
+    updatedUserId                   String @db.VarChar(255)             
+    createdAt                       DateTime @default(now())
+    updatedAt                       DateTime @updatedAt
+}
+
+model PublicHolidayLocationMapping {
+    id              Int @id @default(autoincrement())
+    location        Locations @relation(fields: [locationId], references: [id])
+    locationId      Int
+    publicHoliday   PublicHolidays @relation(fields: [publicHolidayId], references: [id])
+    publicHolidayId Int
+}
+
+model OrderHeader {
+    id              Int @id @default(autoincrement())
+    uuid            String @db.VarChar(36)
+    memberId        String? @db.VarChar(255)
+    location        Locations @relation(fields: [locationId], references: [id])
+    locationId      Int
+    guestFirstName  String? @db.VarChar(20)
+    guestLastName   String? @db.VarChar(20)
+    guestEmail      String? @db.VarChar(50)
+    phone           String? @db.VarChar(20)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    preparedAt      DateTime?
+    completedAt     DateTime?
+    completed       Int
+    status          Int
 }
