@@ -593,10 +593,10 @@ const Menu = () => {
         setTimeout(() => {
             setCardTransition(true);
         }, 100);
-    };
+    }
 
     function handleSortPositions() {
-        let _menus: Menus = [];
+        const _menus: Menus = [];
 
         if (!menusState) return null;
         menusState.forEach(menu => _menus.push(Object.assign({}, menu)));

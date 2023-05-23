@@ -443,7 +443,7 @@ const MenuCategories = () => {
     };
 
     function handleSortPositions() {
-        let _menuCategories: MenuCategories = [];
+        const _menuCategories: MenuCategories = [];
 
         if (!menuCategoriesState) return null;
         menuCategoriesState.forEach(menuCategory => _menuCategories.push(Object.assign({}, menuCategory)));
