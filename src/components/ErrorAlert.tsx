@@ -11,8 +11,11 @@ const ErrorAlert = ({ errors }: { errors: string[] }) => {
             <h2 className="text-center text-sm">Validation Error:</h2>
 
             <div className="flex flex-col space-y-1">
-                {filteredErrors.map((error) => (
-                    <div className="flex items-center space-x-1">
+                {filteredErrors.map((error, index) => (
+                    <div 
+                        key={index}
+                        className="flex items-center space-x-1"
+                    >
                         <span className="border border-white rounded-full h-1 w-1 bg-white ">{" "}</span>
                         
                         <p className="text-xs font-light tex">{error}</p>

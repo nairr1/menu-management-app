@@ -39,7 +39,7 @@ const InputSearchDropdown = ({
         createMappedMenuCategory({ menuId: cardId, menuCategoryId: id });
     }
 
-    let dropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const checkIfClickedOutside = (event: MouseEvent) => {
@@ -52,7 +52,7 @@ const InputSearchDropdown = ({
         return () => {
             document.removeEventListener("click", checkIfClickedOutside);
         }
-    }, [toggleDropdown]);
+    }, [toggleDropdown, setToggleDropdown]);
 
     return (
         <>
@@ -86,11 +86,11 @@ const InputSearchDropdown = ({
                 </div>
 
                 {inputValue !== "" && filteredMenuCategories && filteredMenuCategories.length > 0 && toggleDropdown && (
-                    <div className={`absolute w-full z-20 bg-neutral-100 rounded-b-lg border-b border-l border-r text-sm cursor-pointer font-light transition-all delay-1000 animate-[wiggle_1s_ease-in-out_infinite] ${inputValue !== "" ? "opacity-100 border-slate-300" : "opacity-0"}`}>
+                    <div className={`absolute w-full z-20 bg-neutral-100 rounded-b-lg border-b border-l border-r text-sm cursor-pointer font-light transition-all delay-1000 animate-[wiggle_1s_ease-in-out_infinite] ${inputValue !== "" ? "opacity-100 border-slate-300" : "opacity-0" || ""}`}>
                         {filteredMenuCategories.map(({ id, menuCategoryName }, index) => (
                             <p 
                                 key={index} 
-                                className={`hover:bg-slate-50 px-2.5 py-2 ${menuCategoryName === inputValue && "bg-slate-50" || ""} ${index === filteredMenuCategories.length - 1 && "rounded-lg"}`}
+                                className={`hover:bg-slate-50 px-2.5 py-2 ${menuCategoryName === inputValue && "bg-slate-50" || ""} ${index === filteredMenuCategories.length - 1 && "rounded-lg" || ""}`}
                                 onClick={(() => handleCreateMenuCategoryMapClick(menuCategoryName, id))}
                             >
                                 {menuCategoryName}

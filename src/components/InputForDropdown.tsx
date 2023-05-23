@@ -20,7 +20,7 @@ const InputForDropdown = ({
     dropdownItemsObject?: { id: number; menuName: string; }[];
     labelName: string;
 }) => {
-    let dropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const checkIfClickedOutside = (event: MouseEvent) => {
@@ -33,7 +33,7 @@ const InputForDropdown = ({
         return () => {
             document.removeEventListener("click", checkIfClickedOutside);
         }
-    }, [toggleDropdown]);
+    }, [toggleDropdown, setToggleDropdown]);
 
     return (
         <div className={`relative`}>
@@ -62,7 +62,7 @@ const InputForDropdown = ({
                     {dropdownItems.map((item, index) => (
                         <p 
                             key={index} 
-                            className={`hover:bg-slate-50 px-2.5 py-2 ${item === inputValue && "bg-slate-50" || ""} ${index === dropdownItems.length - 1 && "rounded-lg"}`}
+                            className={`hover:bg-slate-50 px-2.5 py-2 ${item === inputValue && "bg-slate-50" || ""} ${index === dropdownItems.length - 1 && "rounded-lg" || ""}`}
                             onClick={(() => setInputValue(item))}
                         >
                             {item}
@@ -76,7 +76,7 @@ const InputForDropdown = ({
                     {dropdownItemsObject.map((item, index) => (
                         <p 
                             key={index} 
-                            className={`hover:bg-slate-50 px-2.5 py-2 ${item.id.toString() === inputValue && "bg-slate-50" || ""} ${index === dropdownItemsObject.length - 1 && "rounded-lg"}`}
+                            className={`hover:bg-slate-50 px-2.5 py-2 ${item.id.toString() === inputValue && "bg-slate-50" || ""} ${index === dropdownItemsObject.length - 1 && "rounded-lg" || ""}`}
                             onClick={(() => setInputValue(item.id.toString()))}
                         >
                             {item.menuName}
