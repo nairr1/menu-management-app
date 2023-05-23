@@ -305,8 +305,11 @@ const MenuCategoryCardBody = () => {
 
                     {availabilityRules.length > 0 && (
                         <div className="flex flex-col space-y-4">
-                            {availabilityRules.map(({ dayOfWeek, startTime, endTime, available }) => (
-                                <div className="flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light">
+                            {availabilityRules.map(({ dayOfWeek, startTime, endTime, available }, index) => (
+                                <div 
+                                    className="flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light"
+                                    key={index}
+                                >
                                     <p className="w-[8rem]">Day: {formatDayForClient(dayOfWeek)}</p>
 
                                     <p className="w-[8rem]">Start: {formatTime(startTime)}</p>

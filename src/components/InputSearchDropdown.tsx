@@ -19,7 +19,7 @@ const InputSearchDropdown = ({
     setToggleDropdown: Dispatch<SetStateAction<boolean>>;
     menuCategoryData?: { id: number; menuCategoryName: string; }[]
 }) => {
-    const [cardId, setCardId] = useAtom(cardIdAtom);
+    const [cardId] = useAtom(cardIdAtom);
     const ctx = api.useContext();
 
     const { mutate: createMappedMenuCategory, isLoading: isCreatingMappedMenuCategory } = api.menuCategoryMap.createMenuMappedCategory.useMutation({

@@ -13,9 +13,6 @@ import { IoFastFoodOutline } from "react-icons/io5";
 import { BsListUl, BsPrinter, BsCalendar4Week } from "react-icons/bs";
 import { GoLocation } from "react-icons/go";
 
-
-import Image from "next/image";
-
 const ListHeader = ({
     sidebarDropdown,
     toggleSidebarDropdown,
