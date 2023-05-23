@@ -337,9 +337,10 @@ const MenuCardBody = () => {
                     {menuMappedCategories && menuMappedCategories.length > 0 && (
                         <div 
                             className="flex space-x-4">
-                            {menuMappedCategories.map(({ mappedMenuCategory, menuCategory }) => (
+                            {menuMappedCategories.map(({ mappedMenuCategory, menuCategory }, index) => (
                                 <div 
                                     className="relative flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light hover:bg-slate-200 cursor-pointer group"
+                                    key={index}
                                 >
                                     <p>{menuCategory?.menuCategoryName}</p>
 
@@ -422,8 +423,11 @@ const MenuCardBody = () => {
 
                     {availabilityRules && availabilityRules.length > 0 && (
                         <div className="flex flex-col space-y-4">
-                            {availabilityRules.map(({ dayOfWeek, startTime, endTime, available }) => (
-                                <div className="flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light">
+                            {availabilityRules.map(({ dayOfWeek, startTime, endTime, available }, index) => (
+                                <div 
+                                    className="flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light"
+                                    key={index}
+                                >
                                     <p className="w-[8rem]">Day: {formatDayForClient(dayOfWeek)}</p>
 
                                     <p className="w-[8rem]">Start: {formatTime(startTime)}</p>
