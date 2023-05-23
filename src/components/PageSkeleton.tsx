@@ -75,61 +75,6 @@ const PageSkeleton = ({
                             spellCheck="false" 
                         />
                     </div>
-
-                    <div className="">
-                        {menus.map(({ menu, user, updatedUser }) => (
-                            <div 
-                                className={`flex justify-between items-center cursor-pointer py-1 px-2 rounded-sm ${cardId === menu.id ? "bg-neutral-100" : "hover:bg-neutral-100" || ""}`}
-                                onClick={(() => 
-                                    handleMenuCardClick(
-                                        menu.id, 
-                                        menu.menuName, 
-                                        menu.menuType, 
-                                        menu.priceLevel,
-                                        formatUserName(user?.firstName, user?.lastName),
-                                        user?.profileImageUrl || "",
-                                        formatTimestamp(menu.createdAt),
-                                        formatUserName(updatedUser?.firstName, updatedUser?.lastName),
-                                        user?.profileImageUrl || "",
-                                        formatTimestamp(menu.updatedAt)
-                                    )
-                                )}
-                            >
-                                <div>
-                                    <p>{menu.menuName}</p>
-                                </div>
-
-                                <div className="flex space-x-6 items-center text-xs">
-                                    <p className={`${menu.menuType === 1 ? "bg-blue-100" : "bg-fuchsia-100"} px-2 py-0.5 rounded-md`}>
-                                        {menu.menuType === 1 ? "POS" : "Web Ordering"}
-                                    </p>
-
-                                    <p 
-                                        className={`px-2 py-0.5 rounded-md
-                                            ${menu.priceLevel === 1 && "bg-orange-100" || ""}
-                                            ${menu.priceLevel === 2 && "bg-lime-100" || ""}
-                                            ${menu.priceLevel === 3 && "bg-cyan-100" || ""}
-                                        `}
-                                    >
-                                        Price Level {menu.priceLevel}
-                                    </p>
-
-                                    <Image 
-                                        src={user?.profileImageUrl || ""}
-                                        className="rounded-full"
-                                        width={20}
-                                        height={20}
-                                        alt="User Profile Image"
-                                    />
-
-                                    <p className="text-xs text-zinc-500 font-light">{formatTimestamp(menu.createdAt)}</p>
-                                    
-                                </div>
-                            
-                            </div>
-                        ))}
-
-                    </div>
                 </div>
         
             </div>
