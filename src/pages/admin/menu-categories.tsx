@@ -548,10 +548,10 @@ const MenuCategories = () => {
                                         handleCardClick(
                                             menuCategory.id, 
                                             menuCategory.menuCategoryName, 
-                                            formatUserName(user?.firstName, user?.lastName),
+                                            formatUserName(user?.firstName || "", user?.lastName || ""),
                                             user?.profileImageUrl || "",
                                             formatTimestamp(menuCategory.createdAt),
-                                            formatUserName(updatedUser?.firstName, updatedUser?.lastName),
+                                            formatUserName(updatedUser?.firstName || "", updatedUser?.lastName || ""),
                                             user?.profileImageUrl || "",
                                             formatTimestamp(menuCategory.updatedAt)
                                         )

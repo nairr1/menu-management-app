@@ -1,3 +1,3 @@
-export function formatUserName(firstName: string | null | undefined, lastName: string | null | undefined) {
+export function formatUserName(firstName: string, lastName: string) {
     return `${firstName} ${lastName}`;
 }
