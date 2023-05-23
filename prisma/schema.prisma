@@ -12,16 +12,19 @@ datasource db {
 }
 
 model Menus {
-    id                  Int @id @default(autoincrement())
-    menuName            String @db.VarChar(50)
-    menuType            Int
-    position            Int
-    userId              String @db.VarChar(255)
-    updatedUserId       String @db.VarChar(255)             
-    createdAt           DateTime @default(now())
-    updatedAt           DateTime @updatedAt
-    menuAvailability    MenuAvailability[]
-    keypads             Keypads[]
+    id                          Int @id @default(autoincrement())
+    active                      Int @default(1)
+    menuName                    String @db.VarChar(50)
+    menuType                    Int
+    position                    Int
+    priceLevel                  Int
+    updatedUserId               String @db.VarChar(255)             
+    userId                      String @db.VarChar(255)
+    createdAt                   DateTime @default(now())
+    updatedAt                   DateTime @updatedAt
+    menuAvailability            MenuAvailability[]
+    menuLocationMapping         MenuLocationMapping[]
+    menuCategoriesMenuMapping   MenuCategoriesMenuMapping[]
 }
 
 model MenuAvailability {
@@ -34,29 +37,67 @@ model MenuAvailability {
     available   Boolean
 }
 
-model Keypads {
+model MenuLocationMapping {
+    id          Int @id @default(autoincrement())
+    menu        Menus @relation(fields: [menuId], references: [id]) 
+    menuId      Int
+    location    Locations @relation(fields: [locationId], references: [id])
+    locationId  Int
+}
+
+model MenuCategories {
+    id                          Int @id @default(autoincrement())
+    active                      Int @default(1)
+    menuCategoryName            String @db.VarChar(50)
+    position                    Int
+    userId                      String @db.VarChar(255)
+    updatedUserId               String @db.VarChar(255)           
+    createdAt                   DateTime @default(now())
+    updatedAt                   DateTime @updatedAt
+    menuCategoryItems           MenuCategoryItems[]
+    menuCategoryAvailability    MenuCategoryAvailability[]
+    menuCategoryLocationMapping MenuCategoryLocationMapping[]
+    menuCategoriesMenuMapping   MenuCategoriesMenuMapping[]
+}
+
+model MenuCategoriesMenuMapping {
     id              Int @id @default(autoincrement())
     menu            Menus @relation(fields: [menuId], references: [id]) 
     menuId          Int
-    keypadName      String @db.VarChar(50)
-    position        Int
-    userId          String @db.VarChar(255)
-    updatedUserId   String @db.VarChar(255)           
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
-    keypadItems     KeypadItems[]
+    menuCategory    MenuCategories @relation(fields: [menuCategoryId], references: [id]) 
+    menuCategoryId  Int
 }
 
-model KeypadItems {
+model MenuCategoryAvailability {
     id              Int @id @default(autoincrement())
-    keypad          Keypads @relation(fields: [keypadId], references: [id])
-    keypadId        Int
-    item            Int
+    menuCategory    MenuCategories @relation(fields: [menuCategoryId], references: [id]) 
+    menuCategoryId  Int
+    dayOfWeek       Int
+    startTime       String @db.VarChar(5)
+    endTime         String @db.VarChar(5)
+    available       Boolean
+}
+
+model MenuCategoryLocationMapping {
+    id              Int @id @default(autoincrement())
+    menuCategory    MenuCategories @relation(fields: [menuCategoryId], references: [id]) 
+    menuCategoryId  Int
+    location        Locations @relation(fields: [locationId], references: [id])
+    locationId      Int
+}
+
+model MenuCategoryItems {
+    id              Int @id @default(autoincrement())
+    menuCategory    MenuCategories @relation(fields: [menuCategoryId], references: [id])
+    menuCategoryId  Int
+    item            Items @relation(fields: [itemId], references: [id])
+    itemId          Int
     position        Int
 }
 
 model Items {
     id                  Int @id @default(autoincrement())
+    active              Int @default(1)
     itemName            String @db.VarChar(50)
     priceLevelOne       Int
     priceLevelTwo       Int? 
@@ -73,10 +114,12 @@ model Items {
     itemChoiceMapping   ItemChoiceMapping[]
     choiceItems         ChoiceItems[]
     itemLocationMapping ItemLocationMapping[]
+    menuCategoryItems   MenuCategoryItems[]
 }
 
 model Ingredients {
     id                  Int @id @default(autoincrement())
+    active              Int @default(1)
     ingredientName      String @db.VarChar(50)
     amount              Int
     unit                Int
@@ -93,6 +136,7 @@ model ItemRecipeMapping {
 
 model Choices {
     id                  Int @id @default(autoincrement())
+    active              Int @default(1)
     choiceName          String @db.VarChar(50)
     selections          Int
     required            Boolean
@@ -139,6 +183,7 @@ model ItemLocationMapping {
 
 model ItemCategories {
     id              Int @id @default(autoincrement())
+    active          Int @default(1)
     categoryName    String @db.VarChar(50)
     userId          String @db.VarChar(255)
     updatedUserId   String @db.VarChar(255)             
@@ -149,6 +194,7 @@ model ItemCategories {
 
 model Locations {
     id                              Int @id @default(autoincrement())
+    active                          Int @default(1)
     locationName                    String @db.VarChar(50)
     streetOne                       String @db.VarChar(50)
     streetTwo                       String? @db.VarChar(50)
@@ -169,6 +215,8 @@ model Locations {
     customTradingHours              CustomTradingHours[]
     publicHolidayLocationMapping    PublicHolidayLocationMapping[]
     orderHeader                     OrderHeader[]
+    menuLocationMapping             MenuLocationMapping[]
+    menuCategoryLocationMapping     MenuCategoryLocationMapping[]
 }
 
 model LocationStatusLogs {

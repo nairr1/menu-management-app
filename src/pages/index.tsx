@@ -6,12 +6,9 @@ import { useEffect, useState } from "react";
 import { api } from "~/utils/api";
 
 import { v4 as uuid } from "uuid";
+import { SignIn } from "@clerk/nextjs";
 
 const Home: NextPage = () => {
-  const {data: menu} = api.menu.getAll.useQuery();
-
-  console.log(menu)
-
   const [currentUuid, setCurrentUuid] = useState("");
 
   useEffect(() => {
@@ -39,6 +36,18 @@ const Home: NextPage = () => {
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c]">
           <button onClick={getNewUuid}>GET NEW</button>
+          <SignIn
+          appearance={{
+            variables: {
+              colorBackground: "#20222e",
+              colorText: "#ffffff",
+              colorPrimary: "#6C47FF",
+              fontWeight: { normal: 300 },
+              colorInputBackground: "#292c3e",
+              colorInputText: "#ffffff"
+            }
+          }}
+        />
       </main>
     </>
   );

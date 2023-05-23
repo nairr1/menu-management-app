@@ -14,26 +14,23 @@ const filterUserForClient = (user: User) => {
     };
 };
 
-export const menuRouter = createTRPCRouter({
-    getAllMenus: publicProcedure.query(async ({ ctx }) => {
-        const menus = await ctx.prisma.menus.findMany({
+export const menuCategoryRouter = createTRPCRouter({
+    getAllMenuCategories: publicProcedure.query(async ({ ctx }) => {
+        const menuCategories = await ctx.prisma.menuCategories.findMany({
             where: {
                 active: 1,
-            },
-            include: {
-                menuCategoriesMenuMapping: true
             },
             orderBy: [{ position: "asc"}]
         });
 
         const users = (
             await clerkClient.users.getUserList({
-                userId: menus.map((menu) => menu.userId),
+                userId: menuCategories.map((menuCategory) => menuCategory.userId),
             })
         ).map(filterUserForClient);
 
-        return menus.map((menu) => {
-            const user = users.find((user) => user.id === menu.userId);
+        return menuCategories.map((menuCategory) => {
+            const user = users.find((user) => user.id === menuCategory.userId);
 
             if (!user) 
                 throw new TRPCError({
@@ -42,15 +39,16 @@ export const menuRouter = createTRPCRouter({
                 });
 
             return {
-                menu,
-                user: users.find((user) => user.id === menu.userId),
-                updatedUser: users.find((user) => user.id === menu.updatedUserId)
+                menuCategory,
+                user: users.find((user) => user.id === menuCategory.userId),
+                updatedUser: users.find((user) => user.id === menuCategory.updatedUserId)
             };
+            
         });
     }),
 
-    getLatestMenuPosition: publicProcedure.query(async ({ ctx }) => {
-        const menuPosition = await ctx.prisma.menus.findMany({
+    getLatestMenuCategoryPosition: publicProcedure.query(async ({ ctx }) => {
+        const menuCategoryPosition = await ctx.prisma.menuCategories.findMany({
             where: {
                 active: 1,
             },
@@ -61,15 +59,13 @@ export const menuRouter = createTRPCRouter({
             take: 1,
         });
 
-        return menuPosition;
+        return menuCategoryPosition;
     }),
 
-    createMenu: privateProcedure
+    createMenuCategory: privateProcedure
         .input(
             z.object({
                 name: z.string().min(1).max(50),
-                menuType: z.number().min(1),
-                priceLevel: z.number().min(1),
                 position: z.number().min(0),
             }),
         )
@@ -77,28 +73,26 @@ export const menuRouter = createTRPCRouter({
             const userId = ctx.userId;
             const updatedUserId = ctx.userId;
 
-            const createPost = await ctx.prisma.menus.create({
+            const createMenuCategory = await ctx.prisma.menuCategories.create({
                 data: {
                     userId,
                     updatedUserId,
-                    menuName: input.name,
-                    menuType: input.menuType,
-                    priceLevel: input.priceLevel,
+                    menuCategoryName: input.name,
                     position: input.position,
                 },
             });
 
-            return createPost;
+            return createMenuCategory;
         }),
     
-    deleteMenu: privateProcedure
+    deleteMenuCategory: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const deleteMenu = await ctx.prisma.menus.update({
+            const deleteMenuCategory = await ctx.prisma.menuCategories.update({
                 where: {
                     id: input.id,
                 },
@@ -107,37 +101,33 @@ export const menuRouter = createTRPCRouter({
                 },
             });
 
-            return deleteMenu;
+            return deleteMenuCategory;
         }),
 
-    updateMenu: privateProcedure
+    updateMenuCategory: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
                 name: z.string().min(1).max(50),
-                menuType: z.number().min(1),
-                priceLevel: z.number().min(1),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             const updatedUserId = ctx.userId;
 
-            const updateMenu = await ctx.prisma.menus.update({
+            const updateMenuCategory = await ctx.prisma.menuCategories.update({
                 where: {
                     id: input.id,
                 },
                 data: {
-                    menuName: input.name,
-                    menuType: input.menuType,
-                    priceLevel: input.priceLevel,
+                    menuCategoryName: input.name,
                     updatedUserId
                 },
             });
 
-            return updateMenu;
+            return updateMenuCategory;
         }),
 
-    updateMenuPosition: privateProcedure
+    updateMenuCategoryPosition: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
@@ -147,7 +137,7 @@ export const menuRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const updatedUserId = ctx.userId;
 
-            const updateMenuPosition = await ctx.prisma.menus.update({
+            const updateMenuCategoryPosition = await ctx.prisma.menuCategories.update({
                 where: {
                     id: input.id,
                 },
@@ -157,27 +147,27 @@ export const menuRouter = createTRPCRouter({
                 },
             });
 
-            return updateMenuPosition;
+            return updateMenuCategoryPosition;
         }),
 
-    getMenuAvailabilityRuleByMenuId: publicProcedure
+    getMenuCategoryAvailabilityRuleById: publicProcedure
         .input(
             z.object({
                 id: z.number().min(-1),
             }),
         )
         .query(async ({ ctx, input }) => {
-            const menuAvailabilityRules = await ctx.prisma.menuAvailability.findMany({
+            const menuCategoryAvailabilityRules = await ctx.prisma.menuCategoryAvailability.findMany({
                 where: {
-                    menuId: input.id,
+                    menuCategoryId: input.id,
                 },
                 orderBy: [{ dayOfWeek: "asc" }]
             });
 
-            return menuAvailabilityRules;
+            return menuCategoryAvailabilityRules;
         }),
 
-    createMenuAvailabilityRule: privateProcedure
+    createMenuCategoryAvailabilityRule: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
@@ -188,9 +178,9 @@ export const menuRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const createMenuAvailabilityRule = await ctx.prisma.menuAvailability.create({
+            const createMenuCategoryAvailabilityRule = await ctx.prisma.menuCategoryAvailability.create({
                 data: {
-                    menuId: input.id,
+                    menuCategoryId: input.id,
                     dayOfWeek: input.day,
                     startTime: input.startTime,
                     endTime: input.endTime,
@@ -198,6 +188,7 @@ export const menuRouter = createTRPCRouter({
                 },
             });
 
-            return createMenuAvailabilityRule;
+            return createMenuCategoryAvailabilityRule;
         }),
+    
 });

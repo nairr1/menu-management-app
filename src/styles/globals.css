@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow: auto;
+    position: absolute;
+  }
+}
