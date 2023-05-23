@@ -72,7 +72,7 @@ const MenuCategoryCardBody = () => {
             setCardTitle("");
             setCardId(0);
             setCardTransition(false);
-            ctx.menuCategory.getAllMenuCategories.invalidate();
+            void ctx.menuCategory.getAllMenuCategories.invalidate();
 
             setTimeout(() => {
                 setDisplayCard(false);
@@ -87,7 +87,7 @@ const MenuCategoryCardBody = () => {
             setStartTime("");
             setEndTime("");
             setAvailable("");
-            ctx.menuCategory.getMenuCategoryAvailabilityRuleById.invalidate();
+            void ctx.menuCategory.getMenuCategoryAvailabilityRuleById.invalidate();
         }
     });
 
@@ -355,14 +355,14 @@ const MenuCategories = () => {
     const { mutate: createMenuCategory, isLoading: isCreatingMenuCategory } = api.menuCategory.createMenuCategory.useMutation({
         onSuccess: () => {
             setCreateMenuCategoryName("");
-            ctx.menuCategory.getAllMenuCategories.invalidate();
-            ctx.menuCategory.getLatestMenuCategoryPosition.invalidate()
+            void ctx.menuCategory.getAllMenuCategories.invalidate();
+            void ctx.menuCategory.getLatestMenuCategoryPosition.invalidate()
         }
     });
 
     const { mutate: updatePositions, isLoading: isUpdatingPositions } = api.menuCategory.updateMenuCategoryPosition.useMutation({
         onSuccess: () => {
-            ctx.menuCategory.getAllMenuCategories.invalidate();
+            void ctx.menuCategory.getAllMenuCategories.invalidate();
         }
     });
 

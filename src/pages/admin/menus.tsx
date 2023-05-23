@@ -85,7 +85,7 @@ const MenuCardBody = () => {
             setMenuType("");
             setCardId(0);
             setCardTransition(false);
-            ctx.menu.getAllMenus.invalidate();
+            void ctx.menu.getAllMenus.invalidate();
 
             setTimeout(() => {
                 setDisplayCard(false);
@@ -100,14 +100,14 @@ const MenuCardBody = () => {
             setStartTime("");
             setEndTime("");
             setAvailable("");
-            ctx.menu.getMenuAvailabilityRuleByMenuId.invalidate();
+            void ctx.menu.getMenuAvailabilityRuleByMenuId.invalidate();
         },
     });
 
     const { mutate: deleteMenuCategoryMap, isLoading: isDeletingMenuCategoryMap } = api.menuCategoryMap.deleteMenuMappedCategory.useMutation({
         onSuccess: () => {
-            ctx.menuCategoryMap.getMenuCategoriesForDropdown.invalidate();
-            ctx.menuCategoryMap.getMappedMenuCategoriesByMenuId.invalidate();
+            void ctx.menuCategoryMap.getMenuCategoriesForDropdown.invalidate();
+            void ctx.menuCategoryMap.getMappedMenuCategoriesByMenuId.invalidate();
         },
     });
 
@@ -474,14 +474,14 @@ const Menu = () => {
             setCreateMenuName("");
             setCreateMenuType("");
             setCreatePriceLevel("");
-            ctx.menu.getAllMenus.invalidate();
-            ctx.menu.getLatestMenuPosition.invalidate()
+            void ctx.menu.getAllMenus.invalidate();
+            void ctx.menu.getLatestMenuPosition.invalidate()
         }
     });
 
     const { mutate: updateMenuPositions, isLoading: isUpdatingMenuPositions } = api.menu.updateMenuPosition.useMutation({
         onSuccess: () => {
-            ctx.menu.getAllMenus.invalidate();
+            void ctx.menu.getAllMenus.invalidate();
         }
     });
 

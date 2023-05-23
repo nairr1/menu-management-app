@@ -25,8 +25,8 @@ const InputSearchDropdown = ({
     const { mutate: createMappedMenuCategory, isLoading: isCreatingMappedMenuCategory } = api.menuCategoryMap.createMenuMappedCategory.useMutation({
         onSuccess: () => {
             setInputValue("");
-            ctx.menuCategoryMap.getMenuCategoriesForDropdown.invalidate();
-            ctx.menuCategoryMap.getMappedMenuCategoriesByMenuId.invalidate();
+            void ctx.menuCategoryMap.getMenuCategoriesForDropdown.invalidate();
+            void ctx.menuCategoryMap.getMappedMenuCategoriesByMenuId.invalidate();
         },
     });
 

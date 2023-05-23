@@ -77,8 +77,8 @@ const AdminCard = ({ cardDetails }: CardSkeletonProps) => {
         onSuccess: () => {
             handleCloseMenuCard(),
             setDisplayDeletePrompt(false);
-            ctx.menu.getAllMenus.invalidate();
-            ctx.menu.getLatestMenuPosition.invalidate();
+            void ctx.menu.getAllMenus.invalidate();
+            void ctx.menu.getLatestMenuPosition.invalidate();
         },
     });
 
