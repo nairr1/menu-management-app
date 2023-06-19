@@ -1,431 +1,473 @@
 import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
-import { RouterOutputs, api } from "~/utils/api";
+import { useUser } from "@clerk/nextjs";
 
 import { useAtom } from "jotai";
 import { 
-    availableAtom,
     cardIdAtom,
     cardTitleAtom,
     cardTransitionAtom,
+    checkCardTitleAtom,
+    checkDisplayNameAtom,
+    checkMenuCategoryInfoAtom,
+    confirmChangesAnimationAtom,
+    confirmChangesAtom,
     createdAtAtom,
     createdUserImageAtom,
     createdUserNameAtom,
     dayAtom,
     displayCardAtom,
+    displayErrorAtom,
+    displayLoadingToastAtom,
+    displayNameAtom,
     endTimeAtom,
-    menuTypeAtom,
-    priceLevelAtom, 
+    errorTextAtom,
+    loadingToastTextAtom,
+    menuCategoryInfoAtom,
+    newCardAtom,
     searchLocationsAtom, 
     startTimeAtom, 
     updatedAtAtom, 
     updatedUserImageAtom, 
-    updatedUserNameAtom
+    updatedUserNameAtom,
 } from "~/store/store";
 
 import Sidebar from "~/components/Sidebar";
-import AdminCard from "~/components/AdminCard";
-import Input from "~/components/Input";
-import InputForDropdown from "~/components/InputForDropdown";
-import InputSearchDropdown from "~/components/InputSearchDropdown";
-import LoadingSpinner from "~/components/LoadingSpinner";
-import ErrorAlert from "~/components/ErrorAlert";
+import Input from "~/components/inputs/Input";
+import LoadingToast from "~/components/toast/LoadingToast";
+import ErrorToast from "~/components/toast/ErrorToast";
+import MutateButton from "~/components/adminCard/MutateButton";
+import MenuAvailability from "~/components/adminCard/MenuAvailability";
+import LocationMapping from "~/components/adminCard/LocationMapping";
+import AdminCardFunctions from "~/components/adminCard/AdminCardFunctions";
+import AdminCard from "~/components/adminCard/AdminCard";
 
+import { RouterOutputs, api } from "~/utils/api";
 import { formatTimestamp } from "~/utils/formatTimestamp";
-import { formatPriceLevelForFrontEnd } from "~/utils/formatPriceLevelForFrontEnd";
-import { formatDayForClient } from "~/utils/formatDayForClient";
-import { formatTime } from "~/utils/formatTime";
-import Image from "next/image";
 import { formatUserName } from "~/utils/formatUserName";
-import { BsPlusLg } from "react-icons/bs";
+
+import { BsPlusLg, BsTrash } from "react-icons/bs";
 import { RxUpdate } from "react-icons/rx";
+import { getNewPosition } from "~/utils/getNewPosition";
+import InputSearchDropdown from "~/components/inputs/InputSearchDropdown";
 
 type MenuCategories = RouterOutputs["menuCategory"]["getAllMenuCategories"];
+type MappedMenuCategoryItems = RouterOutputs["menuCategoryItemMap"]["getMappedMenuCategoryItemsByMenuCategoryId"];
 
-const MenuCategoryCardBody = () => {
-    const [toggleDayDropdown, setToggleDayDropdown] = useState(false);
-    const [toggleAvailableDropdown, setToggleAvailableDropdown] = useState(false);
-    const [locationDropdown, setLocationDropdown] = useState(false);
+const MapItem = () => {
+    const [toggleItemDropdown, setToggleItemDropdown] = useState(false);
+    const [itemInput, setItemInput] = useState("");
+    const [itemId, setItemId] = useState("");
 
-    const [displayError, setDisplayError] = useState(false);
-    const [displayAvailabilityError, setDisplayAvailabilityError] = useState(false);
+    const [, setDisplayError] = useAtom(displayErrorAtom);
+    const [, setErrorText] = useAtom(errorTextAtom);
 
-    const [displayCard, setDisplayCard] = useAtom(displayCardAtom);
-    const [cardTransition, setCardTransition] = useAtom(cardTransitionAtom);
+    const [, setDisplayLoadingToast] = useAtom(displayLoadingToastAtom);
+    const [, setLoadingToastText] = useAtom(loadingToastTextAtom);
 
-    const [cardId, setCardId] = useAtom(cardIdAtom);
-    const [cardTitle, setCardTitle] = useAtom(cardTitleAtom);
-
-    const [day, setDay] = useAtom(dayAtom);
-    const [available, setAvailable] = useAtom(availableAtom);
-    const [startTime, setStartTime] = useAtom(startTimeAtom);
-    const [endTime, setEndTime] = useAtom(endTimeAtom);
-
-    const [searchLocations, setSearchLocations] = useAtom(searchLocationsAtom);
-
+    const [cardId] = useAtom(cardIdAtom);
+    
     const ctx = api.useContext();
 
-    const { data: availabilityRules } = api.menuCategory.getMenuCategoryAvailabilityRuleById.useQuery({ id: cardId });
+    const { data: itemData } = api.item.getAllItemsForDropdown.useQuery();
+    const { data: menuCategoryItems } = api.menuCategoryItemMap.getMappedMenuCategoryItemsByMenuCategoryId.useQuery({ id: cardId });
+    const { data: menuCategoryItemPosition } = api.menuCategoryItemMap.getLatestMappedMenuCategoryItemPosition.useQuery({ id: cardId });
 
-    const { mutate: updateMenuCategory, isLoading: isUpdatingMenuCategory  } = api.menuCategory.updateMenuCategory.useMutation({
+    const { mutate: createMenuCategoryItem } = api.menuCategoryItemMap.createMappedMenuCategoryItem.useMutation({
         onSuccess: () => {
-            setCardTitle("");
-            setCardId(0);
-            setCardTransition(false);
-            void ctx.menuCategory.getAllMenuCategories.invalidate();
+            setDisplayLoadingToast(false);
+            setItemId("");
+            setItemInput("");
+            void ctx.menuCategoryItemMap.getMappedMenuCategoryItemsByMenuCategoryId.invalidate({ id: cardId });
+            void ctx.menuCategoryItemMap.getLatestMappedMenuCategoryItemPosition.invalidate({ id: cardId });
+        },
+    });
 
-            setTimeout(() => {
-                setDisplayCard(false);
-            }, 750);
+    const { mutate: deleteMenuCategoryItem } = api.menuCategoryItemMap.deleteMappedMenuCategoryItem.useMutation({
+        onSuccess: () => {
+            setDisplayLoadingToast(false);
+            void ctx.menuCategoryItemMap.getMappedMenuCategoryItemsByMenuCategoryId.invalidate({ id: cardId });
+            void ctx.menuCategoryItemMap.getLatestMappedMenuCategoryItemPosition.invalidate({ id: cardId });
+        },
+    });
+
+    const { mutate: updateMenuCategoryItemPosition } = api.menuCategoryItemMap.updateMappedMenuCategoryItemPosition.useMutation({
+        onSuccess: () => {
+            setDisplayLoadingToast(false);
+            setLoadingToastText("");
+            void ctx.menuCategoryItemMap.getMappedMenuCategoryItemsByMenuCategoryId.invalidate({ id: cardId });
         }
     });
 
-    const { mutate: createAvailabilityRule, isLoading: isCreatingAvailabilityRule } = api.menuCategory.createMenuCategoryAvailabilityRule.useMutation({
-        onSuccess: () => {
-            setDay("");
-            setAvailable("");
-            setStartTime("");
-            setEndTime("");
-            setAvailable("");
-            void ctx.menuCategory.getMenuCategoryAvailabilityRuleById.invalidate();
-        }
-    });
+    const [menuCategoryItemsState, setMenuCategoryItemsState] = useState<MappedMenuCategoryItems>();
 
-    function handleMutateMenuClick() {
-        if (cardTitle === "") {
+    useEffect(() => {
+        if (menuCategoryItems !== undefined) {
+            setMenuCategoryItemsState(menuCategoryItems);
+        }
+    }, [menuCategoryItems]);
+
+    const dragItem = useRef(-1);
+    const dragOverItem = useRef(-1);
+
+    function handleSortPositions() {
+        const _menuCategoryItems: MappedMenuCategoryItems = [];
+
+        if (!menuCategoryItemsState) return null;
+        menuCategoryItemsState.forEach(item => _menuCategoryItems.push(Object.assign({}, item)));
+
+        const draggedItemContent = _menuCategoryItems.splice(dragItem.current, 1)[0];
+
+        if (draggedItemContent) {
+            _menuCategoryItems.splice(dragOverItem.current, 0, draggedItemContent);
+        }
+
+        dragItem.current = -1;
+        dragOverItem.current = -1;
+
+        setMenuCategoryItemsState(_menuCategoryItems);
+    }
+
+    function handleUpdatePositionsClick() {
+        if (!menuCategoryItemsState) return null;
+
+        setLoadingToastText("Updating Positions..." );
+        setDisplayLoadingToast(true);
+
+        menuCategoryItemsState.map(({ menuCategoryItem }, index) => {
+            updateMenuCategoryItemPosition({ id: menuCategoryItem.id, position: index })
+        });
+    }
+
+    function mapChoiceItem() {
+        if (itemId === "") {
             setDisplayError(true);
+
+            setErrorText([
+                itemId === "" ? "No item entered." : "",
+            ])
 
             setTimeout(() => {
                 setDisplayError(false);
             }, 2000);
         }
 
-        if (cardTitle !== "") {
+        if (itemId !== "") {
             setDisplayError(false);
+            setDisplayLoadingToast(true);
+            setLoadingToastText("Mapping Item...");
 
-            return updateMenuCategory({
-                name: cardTitle,
-                id: cardId,
+            createMenuCategoryItem({
+                menuCategoryId: cardId,
+                itemId: Number(itemId),
+                position: getNewPosition(menuCategoryItemPosition),
             });
         }
     }
 
-    let formattedDay = 0;
-    switch(day) {
-        case("Monday"):
-            formattedDay = 1;
-            break;
-        case("Tuesday"):
-            formattedDay = 2;
-            break;
-        case("Wednesday"):
-            formattedDay = 3;
-            break;
-        case("Thursday"):
-            formattedDay = 4;
-            break;
-        case("Friday"):
-            formattedDay = 5;
-            break;
-        case("Saturday"):
-            formattedDay = 6;
-            break;
-        case("Sunday"):
-            formattedDay = 0;
-            break;
+    function deleteMappedChoiceItem(id: number) {
+        setDisplayLoadingToast(true);
+        setLoadingToastText("Deleting Item...");
+
+        deleteMenuCategoryItem({
+            id: id,
+        });
     }
-
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-
-    function handleCreateAvailabilityRuleClick() {
-        if (day === "" || !startTime.match(timeRegex) || !endTime.match(timeRegex) || available === "") {
-            setDisplayAvailabilityError(true);
-
-            setTimeout(() => {
-                setDisplayAvailabilityError(false);
-            }, 2000);
-        }
-
-        if (day !== "" && startTime.match(timeRegex) && endTime.match(timeRegex) && available !== "") {
-            setDisplayAvailabilityError(false);
-
-            return createAvailabilityRule({
-                id: cardId,
-                available: available === "Yes" ? true : false,
-                day: formattedDay,
-                startTime: startTime.length === 4 ? `0${startTime}` : startTime,
-                endTime: endTime.length === 4 ? `0${endTime}` : endTime,
-            });
-        }
-    }
-
-    if (!availabilityRules) return <LoadingSpinner text="Loading..." />;
 
     return (
-        <>
-            {isCreatingAvailabilityRule && (
-                <LoadingSpinner text="Creating Rule..." />
-            )}
+        <div className="flex flex-col space-y-4">
+            <div className="flex flex-col justify-center items-center mb-4">
+                <h2 className="text-center capitalize">Assign Items</h2>
 
-            {isUpdatingMenuCategory && (
-                <LoadingSpinner text={`Updating Menu ID: ${cardId}`} />
-            )}
+                <p className="text-xs font-light">Assign items to this menu category.</p>
+            </div>
 
-            {displayError && (
-                <ErrorAlert 
-                    errors={[
-                        cardTitle === "" ? "Menu category name wasn't entered." : "",
-                    ]} 
-                />
-            )}   
+            <div className="flex flex-col space-y-4">
+                <div>
+                    <p className="p-1 font-light text-xs">Search items to assign to this menu category, you must click the item to assign.</p>
 
-            {displayAvailabilityError  && (
-                <ErrorAlert 
-                    errors={[
-                        day === "" ? "Day wasn't entered." : "",
-                        !startTime.match(timeRegex) ? "Start time wasn't formatted correctly." : "",
-                        !endTime.match(timeRegex) ? "End time wasn't formatted correctly." : "",
-                        available === "" ? "Availability wasn't entered" : "",
-                    ]} 
-                />
-            )}   
-
-            <div className="flex flex-col space-y-16">  
-                <div className="flex mt-8">
-                    <button 
-                        className="w-fit m-auto text-sm relative inline-flex items-center justify-center px-2 py-1 overflow-hidden font-medium text-[#2f334a] transition duration-300 ease-out border-2 border-[#2f334a] rounded-md shadow-md group bg-white"
-                        onClick={handleMutateMenuClick}
-                    >
-                        <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-[#2f334a] group-hover:translate-x-0 ease">
-                            <svg 
-                                className="w-4 h-4" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24" 
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                            </svg>
-                        </span>
-                        
-                        <span className="absolute flex items-center justify-center w-full h-full text-[#2f334a]  transition-all duration-300 transform group-hover:translate-x-full ease">Update</span>
-                        
-                        <span className="relative invisible">Update</span>
-
-                    </button>
+                    <InputSearchDropdown 
+                        toggleDropdown={toggleItemDropdown}
+                        setToggleDropdown={setToggleItemDropdown}
+                        inputValue={itemInput}
+                        setInputValue={setItemInput}
+                        labelName="Item"    
+                        itemData={itemData}
+                        setDropdownItemsId={setItemId}
+                    />
                 </div>
 
-                <div className="flex flex-col space-y-4 mt-16">
-                    <div className="flex flex-col justify-center items-center mb-4">
-                        <h2 className="text-center">Locations</h2>
+                <div 
+                    className="flex items-center space-x-1 w-fit text-zinc-500 cursor-pointer group"
+                    onClick={mapChoiceItem}
+                >
+                    <BsPlusLg 
+                        className="group-hover:text-blue-400 dark:group-hover:text-pink-300/70" 
+                    />
 
-                        <p className="text-xs font-light">Map menu categories to specific locations.</p>
-                    </div>
-
-                    <div>
-                        <p className="p-1 font-light text-xs">Add locations the menu category will apply to, if no locations are selected, the category will apply to all.</p>
-
-                        <InputSearchDropdown 
-                            labelName="Search Locations"
-                            inputValue={searchLocations}
-                            setInputValue={setSearchLocations}
-                            toggleDropdown={locationDropdown}
-                            setToggleDropdown={setLocationDropdown}
-                        />
-                    </div>
-                    
+                    <p className="group-hover:text-slate-800 dark:group-hover:text-neutral-300/70 text-xs">Add Item</p>
                 </div>
 
-                <div className="flex flex-col space-y-4">
-                    <div className="flex flex-col justify-center items-center mb-4">
-                        <h2 className="text-center">Menu Category Availability</h2>
+                <div 
+                    className="flex items-center space-x-1 w-fit text-zinc-500 group dark:hover:text-neutral-300/70 cursor-pointer px-0.5"
+                    onClick={handleUpdatePositionsClick}
+                >
+                    <RxUpdate 
+                        className="group-hover:text-blue-400 dark:group-hover:text-pink-300/70 group-hover:animate-spin text-xs"
+                    />
 
-                        <p className="text-xs font-light">Create rules to dictate when the menu category will be available.</p>
-                    </div>
+                    <p className="group-hover:text-slate-800 dark:group-hover:text-neutral-300/70 text-xs">Update Positions</p>
+                </div>
 
-                    <div className="flex flex-col space-y-4">
-                        <div>
-                            <p className="p-1 font-light text-xs">Select a day the availability rule will apply to.</p>
+                <div className="flex flex-col border-slate-300 dark:border-neutral-800 shadow-md">
+                    <table className="w-full text-xs font-light text-left relative">
+                        <thead className="sticky top-0 text-xs bg-neutral-100 dark:bg-[#202021] uppercase">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">
+                                    ID
+                                </th>
 
-                            <InputForDropdown 
-                                toggleDropdown={toggleDayDropdown}
-                                setToggleDropdown={setToggleDayDropdown}
-                                inputValue={day}
-                                setInputValue={setDay}
-                                dropdownItems={["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}
-                                labelName="Day"
-                            />
-                        </div>
+                                <th scope="col" className=" px-6 py-3">
+                                    Item
+                                </th>
 
-                        <div>
-                            <p className="p-1 font-light text-xs">Input the 24hr time value; e.g. 10:00.</p>
+                                <th scope="col" className="px-6 py-3">
+                                    Price
+                                </th>
 
-                            <Input 
-                                inputValue={startTime}
-                                setInputValue={setStartTime}
-                                labelName="Start Time"           
-                            />
-                        </div>
+                                <th scope="col" className="px-6 py-3">
+                                    Category
+                                </th>
 
-                        <div>
-                            <p className="p-1 font-light text-xs">Input the 24hr time value; e.g. 22:00.</p>
+                                <th scope="col" className="px-6 py-3">
+                                    Class
+                                </th>
 
-                            <Input 
-                                inputValue={endTime}
-                                setInputValue={setEndTime}
-                                labelName="End Time"                 
-                            />
-                        </div>
+                                <th scope="col" className="px-6 py-3">
+                                    Created
+                                </th>
+                            </tr>
+                        </thead>
 
-                        <div>
-                            <p className="p-1 font-light text-xs">Determine whether the menu will be available.</p>
+                        <tbody>
+                            {menuCategoryItemsState && menuCategoryItemsState.length > 0 && (
+                                <>
+                                    {menuCategoryItemsState.map(({ menuCategoryItem, user }, index) => (
+                                        <tr 
+                                            key={menuCategoryItem.id}
+                                            className="relative bg-white border-b dark:bg-[#1b1b1c] border-slate-300 dark:border-neutral-800 cursor-pointer dark:hover:bg-neutral-800 group"
+                                            draggable
+                                            onDragStart={(() => dragItem.current = index)}
+                                            onDragEnter={(() => dragOverItem.current = index)}
+                                            onDragOver={((e) => e.preventDefault())}
+                                            onDragEnd={handleSortPositions}
+                                            aria-disabled={true}
+                                        >
+                                            <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                                {menuCategoryItem.item.id}
+                                            </th>
 
-                            <InputForDropdown 
-                                toggleDropdown={toggleAvailableDropdown}
-                                setToggleDropdown={setToggleAvailableDropdown}
-                                inputValue={available}
-                                setInputValue={setAvailable}
-                                dropdownItems={["Yes", "No"]}
-                                labelName="Availability"
-                            />
-                        </div>
+                                            <td className="px-6 py-4">
+                                                {menuCategoryItem.item.itemName}
+                                            </td>
 
-                        <div 
-                            className="flex items-center space-x-1 w-fit text-zinc-500 cursor-pointer group"
-                            onClick={handleCreateAvailabilityRuleClick}
-                        >
-                            <BsPlusLg 
-                                className="group-hover:text-blue-400 " 
-                            />
+                                            <td className="px-6 py-4">
+                                                ${menuCategoryItem.item.priceLevelOne}
+                                            </td>
 
-                            <p className="group-hover:text-slate-800 text-sm">Add Availability Rule</p>
-                        </div>
+                                            <td className="px-6 py-4">
+                                                {menuCategoryItem.item.category.categoryName}
+                                            </td>
 
-                    </div>
+                                            <td className="px-6 py-4">
+                                                {menuCategoryItem.item.class.className}
+                                            </td>
 
-                    {availabilityRules.length > 0 && (
-                        <div className="flex flex-col space-y-4">
-                            {availabilityRules.map(({ dayOfWeek, startTime, endTime, available }, index) => (
-                                <div 
-                                    className="flex items-center bg-neutral-100 p-2 w-fit rounded-lg text-xs font-light"
-                                    key={index}
-                                >
-                                    <p className="w-[8rem]">Day: {formatDayForClient(dayOfWeek)}</p>
+                                            <td className="flex items-center space-x-2 px-6 py-4">
+                                                <Image 
+                                                    src={user?.profileImageUrl || ""}
+                                                    className="rounded-full"
+                                                    width={20}
+                                                    height={20}
+                                                    alt="User Profile Image"
+                                                />
 
-                                    <p className="w-[8rem]">Start: {formatTime(startTime)}</p>
+                                                <p className="text-[10px] 2xl:text-xs text-zinc-500 font-light">{formatTimestamp(menuCategoryItem.createdAt)}</p>
+                                            </td>
 
-                                    <p className="w-[8rem]">End: {formatTime(endTime)}</p>
-
-                                    <p className="">Available: {available ? "Yes" : "No"}</p>
+                                            <td 
+                                                className="invisible group-hover:visible absolute -top-2 -right-2 bg-red-500/80 p-1 rounded-full hover:scale-110"
+                                                onClick={(() => deleteMappedChoiceItem(menuCategoryItem.id))}
+                                            >
+                                                <BsTrash />
+                                            </td>
+                                        </tr>
+                                    ))}
                                     
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                </>  
+                            )}
+                        </tbody>
 
-                </div>    
+                    </table>
+
+                </div>
 
             </div>
-        </>
+            
+        </div>    
+    );
+};
+
+const MenuCategoryConfiguration = () => {
+    const [menuCategoryDisplayName, setMenuCategoryDisplayName] = useAtom(displayNameAtom);
+    const [menuCategoryInfo, setMenuCategoryInfo] = useAtom(menuCategoryInfoAtom);
+
+    return (
+        <div className="flex flex-col space-y-10 mt-8">
+            <div className="flex flex-col space-y-4">
+                <div className="flex flex-col justify-center items-center mb-4">
+                    <h2 className="text-center">Menu Category Configuration</h2>
+
+                    <p className="text-xs font-light">Update menu category configuration settings.</p>
+                </div>
+
+                <div className="">
+                    <p className="p-1 font-light text-xs">Input the menu category name that will display on the UI.</p>
+
+                    <Input 
+                        inputValue={menuCategoryDisplayName}
+                        setInputValue={setMenuCategoryDisplayName}
+                        labelName="Display Name"           
+                    />
+                </div>
+
+                <div className="">
+                    <p className="p-1 font-light text-xs">Add a description.</p>
+
+                    <textarea 
+                        rows={5} 
+                        className=" p-2.5 md:mt-1 2xl:mt-0 w-full text-xs rounded-lg border outline-none focus:border-slate-300 bg-neutral-100 dark:bg-neutral-800 dark:border-neutral-700 dark:focus:border-neutral-600 dark:placeholder:text-zinc-500" 
+                        placeholder="Category Description"
+                        value={menuCategoryInfo}
+                        onChange={((e) => setMenuCategoryInfo(e.target.value))}
+                    >
+                    </textarea>
+                </div>
+
+            </div>
+
+        </div>  
     );
 };
 
 const MenuCategories = () => {
+    const [displayError, setDisplayError] = useAtom(displayErrorAtom);  
+    const [displayLoadingToast, setDisplayLoadingToast] = useAtom(displayLoadingToastAtom);
+    const [, setLoadingToastText] = useAtom(loadingToastTextAtom);
+    
+    const [, setNewCard] = useAtom(newCardAtom);
     const [displayCard, setDisplayCard] = useAtom(displayCardAtom);
     const [cardTransition, setCardTransition] = useAtom(cardTransitionAtom);
+    const [, setConfirmChanges] = useAtom(confirmChangesAtom);
+    const [, setConfirmChangesAnimation] = useAtom(confirmChangesAnimationAtom);
 
-    const [createdUserName, setCreatedUserName] = useAtom(createdUserNameAtom);
-    const [createdUserImage, setCreatedUserImage] = useAtom(createdUserImageAtom);
-    const [createdAt, setCreatedAt] = useAtom(createdAtAtom);
-    const [updatedUserName, setUpdatedUserName] = useAtom(updatedUserNameAtom);
-    const [updatedUserImage, setUpdatedUserImage] = useAtom(updatedUserImageAtom);
-    const [updatedAt, setUpdatedAt] = useAtom(updatedAtAtom);
+    const [, setCreatedUserName] = useAtom(createdUserNameAtom);
+    const [, setCreatedUserImage] = useAtom(createdUserImageAtom);
+    const [, setCreatedAt] = useAtom(createdAtAtom);
+    const [, setUpdatedUserName] = useAtom(updatedUserNameAtom);
+    const [, setUpdatedUserImage] = useAtom(updatedUserImageAtom);
+    const [, setUpdatedAt] = useAtom(updatedAtAtom);
 
     const [cardId, setCardId] = useAtom(cardIdAtom);
     const [cardTitle, setCardTitle] = useAtom(cardTitleAtom);
-    const [menuType, setMenuType] = useAtom(menuTypeAtom);
-    const [priceLevel, setPriceLevel] = useAtom(priceLevelAtom);
+    const [displayName, setDisplayName] = useAtom(displayNameAtom);
+    const [menuCategoryInfo, setMenuCategoryInfo] = useAtom(menuCategoryInfoAtom)
 
-    const [day, setDay] = useAtom(dayAtom);
-    const [available, setAvailable] = useAtom(availableAtom);
-    const [startTime, setStartTime] = useAtom(startTimeAtom);
-    const [endTime, setEndTime] = useAtom(endTimeAtom);
+    const [checkMenuCategoryName, setCheckMenuCategoryName] = useAtom(checkCardTitleAtom);
+    const [checkDisplayName, setCheckDisplayName] = useAtom(checkDisplayNameAtom);
+    const [checkMenuCategoryInfo, setCheckMenuCategoryInfo] = useAtom(checkMenuCategoryInfoAtom);
 
-    const [searchLocations, setSearchLocations] = useAtom(searchLocationsAtom);
+    const [, setDay] = useAtom(dayAtom);
+    const [, setStartTime] = useAtom(startTimeAtom);
+    const [, setEndTime] = useAtom(endTimeAtom);
+
+    const [, setSearchLocations] = useAtom(searchLocationsAtom);
 
     const ctx = api.useContext();
 
-    const { mutate: createMenuCategory, isLoading: isCreatingMenuCategory } = api.menuCategory.createMenuCategory.useMutation({
-        onSuccess: () => {
-            setCreateMenuCategoryName("");
-            void ctx.menuCategory.getAllMenuCategories.invalidate();
-            void ctx.menuCategory.getLatestMenuCategoryPosition.invalidate()
-        }
-    });
+    const user = useUser();
 
-    const { mutate: updatePositions, isLoading: isUpdatingPositions } = api.menuCategory.updateMenuCategoryPosition.useMutation({
+    const { mutate: updateMenuCategoryPositions } = api.menuCategory.updateMenuCategoryPosition.useMutation({
         onSuccess: () => {
+            setDisplayLoadingToast(false);
+            setLoadingToastText("");
             void ctx.menuCategory.getAllMenuCategories.invalidate();
         }
     });
-
 
     const { data: menuCategories } = api.menuCategory.getAllMenuCategories.useQuery();
-    const { data: menuCategoryPosition } = api.menuCategory.getLatestMenuCategoryPosition.useQuery();
+    const { data: availabilityRules } = api.menuCategory.getMenuCategoryAvailabilityRuleById.useQuery({ id: cardId });
 
-    const [displayError, setDisplayError] = useState(false);  
-    
-    const [createMenuCategoryName, setCreateMenuCategoryName] = useState("");
 
     const [menuCategoriesState, setMenusCategoriesState] = useState<MenuCategories>();
 
     useEffect(() => {
         if (menuCategories !== undefined) {
-            setMenusCategoriesState(menuCategories)
+            setMenusCategoriesState(menuCategories);
         }
     }, [menuCategories]);
 
     const dragItem = useRef(-1);
     const dragOverItem = useRef(-1);
 
-    let newMenuCategoryPosition = 0;
-    if (menuCategoryPosition && menuCategoryPosition.length > 0) {
-        newMenuCategoryPosition = menuCategoryPosition[0]?.position as number + 1;
+    function handleNewCardClick() {
+        if (displayCard) return null;
+
+        setNewCard(true);
+        setDisplayCard(true); 
+        setCardTitle("");
+        setCheckMenuCategoryName("");
+        setDisplayName("");
+        setCheckDisplayName("");
+        setDay("");
+        setStartTime("");
+        setEndTime("")
+        setSearchLocations("");
+        setCreatedUserName(user.user?.fullName || "");
+        setCreatedUserImage(user.user?.profileImageUrl || "");
+        setCreatedAt(formatTimestamp(new Date()));
+        setUpdatedUserName(user.user?.fullName || "");
+        setUpdatedUserImage(user.user?.profileImageUrl || "");
+        setUpdatedAt(formatTimestamp(new Date()));
+
+        setTimeout(() => {
+            setCardTransition(true);
+        }, 100);
     }
 
-    function handleMutateMenuClick() {
-        if (createMenuCategoryName === "") {
-            setDisplayError(true);
-
-            setTimeout(() => {
-                setDisplayError(false);
-            }, 2000);
-        }
-
-        if (createMenuCategoryName !== "") {
-            setDisplayError(false);
-
-            return createMenuCategory({ 
-                name: createMenuCategoryName,
-                position: newMenuCategoryPosition
-            });
-        }
-    }
-
-    const handleCardClick = (
+    function handleCardClick(
             id: number, 
-            menuName: string, 
+            menuCategoryName: string, 
+            menuCategoryDisplayName: string,
+            menuCategoryDescription: string,
             createdUserName: string,
             createdUserImage: string,
             createdAt: string,
             updatedUserName: string,
             updatedUserImage: string,
             updatedAt: string,
-    ) => {
+    ) {
+        if (displayCard) return null;
+
         setDisplayCard(true); 
-        setCardTitle(menuName);
+        setCardTitle(menuCategoryName);
+        setCheckMenuCategoryName(menuCategoryName);
+        setDisplayName(menuCategoryDisplayName);
+        setCheckDisplayName(menuCategoryDisplayName);
+        setMenuCategoryInfo(menuCategoryDescription);
+        setCheckMenuCategoryInfo(menuCategoryDescription);
         setDay("");
-        setAvailable("");
         setStartTime("");
         setEndTime("")
         setSearchLocations("");
@@ -440,7 +482,7 @@ const MenuCategories = () => {
         setTimeout(() => {
             setCardTransition(true);
         }, 100);
-    };
+    }
 
     function handleSortPositions() {
         const _menuCategories: MenuCategories = [];
@@ -462,45 +504,75 @@ const MenuCategories = () => {
 
     function handleUpdatePositionsClick() {
         if (!menuCategoriesState) return null;
+        if (displayCard) return null;
+
+        setLoadingToastText("Updating Positions..." );
+        setDisplayLoadingToast(true);
+
         menuCategoriesState.map(({ menuCategory }, index) => {
-            updatePositions({ id: menuCategory.id, position: index })
+            updateMenuCategoryPositions({ id: menuCategory.id, position: index })
         });
     }
 
-    if (!menuCategoriesState) return <LoadingSpinner text="Loading..." />;
+    const handleCloseAdminCardClick = () => {
+        if (checkMenuCategoryName !== cardTitle || checkDisplayName !== displayName || menuCategoryInfo !== checkMenuCategoryInfo) {
+            setConfirmChanges(true);
+
+            setTimeout(() => {
+                setConfirmChangesAnimation(true);
+            }, 100);
+
+        } else {
+            setCardTransition(false);
+            setConfirmChanges(false);
+    
+            setTimeout(() => {
+                setDisplayCard(false);
+                setConfirmChanges(false);
+                setNewCard(false);
+            }, 750);
+        }
+    };
+
+    if (!menuCategoriesState) {
+        setLoadingToastText("Loading...");
+        return <LoadingToast />;
+    } 
+
+    const date = new Date();
+    const day = date.getDay();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const time = `${hour.toString().length === 1 ? `0${hour}` : hour}:
+    ${minute.toString().length === 1 ? `0${minute}` : minute}`;
 
     return (
         <div className="flex">
             <Sidebar />
 
-            {isCreatingMenuCategory && (
-                <LoadingSpinner text="Creating Category..." />
+            {displayLoadingToast && (
+                <LoadingToast />
             )}
 
-            {isUpdatingPositions && (
-                <LoadingSpinner text="Updating Positions..." />
-            )}
-
-            {displayError  && (
-                <ErrorAlert 
-                    errors={[
-                        createMenuCategoryName === "" ? "No menu category value." : "",
-                    ]} 
-                />
+            {displayError && (
+                <ErrorToast />
             )}  
 
-            <div className="sticky top-0 flex-1 h-screen scrollbar w-fit px-6">
+            <div 
+                className={`sticky top-0 flex-1 h-screen scrollbar w-fit px-6 ${displayCard && cardTransition && "opacity-30"}`} 
+                onClick={displayCard ? handleCloseAdminCardClick : undefined}
+            >
                 <div className="flex-1 flex flex-col space-y-4 py-10 px-8">
-                    <div className="flex flex-col space-y-1 border-b py-2">
-                        <h1 className="text-[2rem] font-medium">Menu Categories</h1>
+                    <div className="flex flex-col space-y-1 py-2">
+                        <h1 className="text-[2rem] font-medium">Menus Categories</h1>
 
                         <div className="flex flex-col space-y-2 text-sm font-light ">
                                 <div className="items-center space-y-1">
-                                    <p className="">
+                                    <p className="dark:text-neutral-200">
                                         Create menu categories, position them from top to bottom to give certain categories precedence over others.
                                     </p>
 
-                                    <p>
+                                    <p className="dark:text-neutral-200">
                                         Simply drag and drop to update positions, categories positioned higher in the list take greater precedence when rendering to the UI.
                                     </p>
                                 </div>
@@ -508,49 +580,31 @@ const MenuCategories = () => {
 
                     </div>
 
-                    <div className="flex flex-col space-y-8">
-                        <div className="flex flex-col items- space-y-2 py-1 px-2 rounded-md">
-                            <div className="flex items-center space-x-4">
-                                <Input 
-                                    inputValue={createMenuCategoryName}
-                                    setInputValue={setCreateMenuCategoryName}
-                                    labelName="Category Name"            
-                                />
-                            </div>
-
+                    <div className="flex flex-col space-y-4">
+                        <div className={`flex flex-col space-y-4 px-2 border-b dark:border-b-neutral-700 pb-4`}>
                             <div 
-                                className="flex items-center space-x-1 w-fit text-zinc-500 cursor-pointer group"
-                                onClick={handleMutateMenuClick}
+                                className={`text-xs flex items-center space-x-1 w-fit text-zinc-500 group dark:hover:text-neutral-300/70 ${displayCard ? "cursor-default" : "cursor-pointer" || ""}`}
+                                onClick={handleNewCardClick}
                             >
                                 <BsPlusLg 
-                                    className="group-hover:text-blue-400 " 
+                                    className={`${displayCard ? "" : "group-hover:text-blue-400 dark:group-hover:text-pink-300/70" || ""}`} 
                                 />
 
-                                <p className="group-hover:text-slate-800 text-sm">Add Category</p>
+                                <p className={`${displayCard ? "" : "group-hover:text-slate-800 dark:group-hover:text-neutral-300/70" || ""}`}>Add Category</p>
                             </div>
-
-                            <div 
-                                className="flex items-center space-x-1.5 w-fit text-zinc-500 cursor-pointer group"
-                                onClick={handleUpdatePositionsClick}
-                            >
-                                <RxUpdate 
-                                    className="group-hover:text-blue-400 text-sm" 
-                                />
-
-                                <p className="group-hover:text-slate-800 text-sm">Update Category Positions</p>
-                            </div>
-
                         </div>
 
-                        <div className="flex flex-col space-y-1">
-                            {menuCategoriesState.map(({ menuCategory, user, updatedUser }, index) => (
+                        <div className="flex flex-col space-y-4">
+                            {menuCategoriesState?.map(({ menuCategory, user, updatedUser }, index) => (
                                 <div 
                                     key={menuCategory.id}
-                                    className={`flex justify-between items-center cursor-pointer py-1 px-2 rounded-md ${cardId === menuCategory.id ? "bg-slate-50" : "hover:bg-slate-50" || ""}`}
+                                    className={`flex flex-col justify-start border dark:border-neutral-800 border-neutral-200 dark:bg-zinc-800/50 p-4 rounded-md shadow-md ${displayCard ? "cursor-default" : "cursor-pointer" || ""}`}
                                     onClick={(() => 
                                         handleCardClick(
                                             menuCategory.id, 
                                             menuCategory.menuCategoryName, 
+                                            menuCategory.menuCategoryDisplayName,
+                                            menuCategory.description,
                                             formatUserName(user?.firstName || "", user?.lastName || ""),
                                             user?.profileImageUrl || "",
                                             formatTimestamp(menuCategory.createdAt),
@@ -564,35 +618,94 @@ const MenuCategories = () => {
                                     onDragEnter={(() => dragOverItem.current = index)}
                                     onDragOver={((e) => e.preventDefault())}
                                     onDragEnd={handleSortPositions}
+                                    aria-disabled={true}
                                 >
-                                    <div>
-                                        <p>{menuCategory.menuCategoryName}</p>
+                                    <div className="flex justify-between">
+                                        <div className="flex flex-col space-y-2 mb-2">
+                                            <div className="flex items-center space-x-1.5">
+                                                <Image 
+                                                    src={user?.profileImageUrl || ""}
+                                                    className="rounded-full"
+                                                    width={20}
+                                                    height={20}
+                                                    alt="User Profile Image"
+                                                />
+
+                                                <p className="text-[10px] 2xl:text-xs text-zinc-500 font-light">{formatTimestamp(menuCategory.createdAt)}</p>
+                                            </div>
+
+                                            <div className="flex items-center space-x-2">
+                                                <h1 className="text-lg">{menuCategory.menuCategoryName}</h1>
+
+                                                {(menuCategory.menuCategoryAvailability.filter(function(e) { return e.dayOfWeek === day && e.startTime <= time && e.endTime >= time; }).length > 0) ? (
+                                                    <div className="flex items-center space-x-1">
+                                                        <span className="border border-green-500 rounded-full h-1 w-1 bg-green-500">{" "}</span>
+
+                                                        <p className="text-xs font-light text-green-500">Available</p>
+                                                    </div>
+
+                                                ) : (
+                                                    <div className="flex items-center space-x-1">
+                                                        <span className="border border-red-500 rounded-full h-1 w-1 bg-red-500">{" "}</span>
+
+                                                        <p className="text-xs font-light text-red-500">Unavailable</p>
+                                                    </div>       
+                                                )}
+
+                                            </div>
+                                            
+                                        </div>
+
                                     </div>
 
-                                    <div className="flex space-x-6 items-center text-xs">
-                                        <Image 
-                                            src={user?.profileImageUrl || ""}
-                                            className="rounded-full"
-                                            width={20}
-                                            height={20}
-                                            alt="User Profile Image"
-                                        />
+                                    {menuCategory.menuCategoryItems.length === 0 && (
+                                        <p className="text-xs font-light italic">No Items</p>
+                                    )}
 
-                                        <p className="text-xs text-zinc-500 font-light">{formatTimestamp(menuCategory.createdAt)}</p>
-                                        
+                                    <div className="flex flex-wrap gap-4">
+                                        {menuCategory.menuCategoryItems.map(({ item }) => (
+                                            <div className="flex flex-col space-y-0.5 items-center">
+                                                <p className="text-[10px] 2xl:text-xs w-16 2xl:w-20 text-center truncate">{item.itemName}</p>
+
+                                                <img 
+                                                    src={item.image} 
+                                                    alt="" 
+                                                    className="object-cover w-16 h-16 2xl:w-20 2xl:h-20 rounded-lg"
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
                                 
                                 </div>
+
                             ))}
 
                         </div>
+
                     </div>
             
                 </div>
 
             </div>
 
-            <AdminCard cardDetails={<MenuCategoryCardBody />} />
+            <AdminCard
+            adminCardFunctions={<AdminCardFunctions />}
+                configuration={<MenuCategoryConfiguration />} 
+                locationMapping={
+                    <LocationMapping 
+                        headerTitle="menu category" 
+                        paragraphTitle="menu categories"
+                    />
+                }
+                menuAvailability={
+                    <MenuAvailability 
+                        title="menu category" 
+                        menuCategoryAvailabilityData={availabilityRules} 
+                    />
+                }
+                menuCategoryItems={<MapItem />}
+                mutateButton={<MutateButton />}
+            />
 
         </div>
     );

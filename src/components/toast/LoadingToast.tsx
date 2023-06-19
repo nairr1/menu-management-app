@@ -1,8 +1,16 @@
 import React from "react";
 
-const LoadingSpinner = ({ text }: { text: string; }) => {
+import { useAtom } from "jotai";
+import { loadingToastTextAtom } from "~/store/store";
+
+const LoadingToast = () => {
+    const [loadingToastText] = useAtom(loadingToastTextAtom);
+
     return (
-        <div className="fixed flex bg-white top-4 p-2 rounded-lg border shadow-xl right-8 z-50" role="status">
+        <div 
+            className="fixed flex bg-white dark:bg-[#1b1b1c] dark:border-neutral-700 top-4 p-2 rounded-lg border shadow-xl right-8 z-50" 
+            role="status"
+        >
             <svg 
                 aria-hidden="true" 
                 className="w-4 h-4 mr-2 text-gray-300 animate-spin fill-gray-500"            
@@ -18,9 +26,9 @@ const LoadingSpinner = ({ text }: { text: string; }) => {
                     fill="currentFill"/>
             </svg>
 
-            <span className="text-xs font-light">{text}</span>
+            <span className="text-xs font-light">{loadingToastText}</span>
         </div>
     );
 };
 
-export default LoadingSpinner;
+export default LoadingToast;

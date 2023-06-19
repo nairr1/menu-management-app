@@ -21,9 +21,23 @@ export const menuRouter = createTRPCRouter({
                 active: 1,
             },
             include: {
-                menuCategoriesMenuMapping: true
+                menuAvailability: true,
+                menuCategoriesMenuMapping: {
+                    orderBy: [{position: "asc"}],
+                    include: {
+                        menuCategory: {
+                            include: {
+                                menuCategoryItems: {
+                                    orderBy: [{position: "asc"}],
+                                    include: {
+                                        item: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             },
-            orderBy: [{ position: "asc"}]
         });
 
         const users = (
@@ -49,46 +63,139 @@ export const menuRouter = createTRPCRouter({
         });
     }),
 
-    getLatestMenuPosition: publicProcedure.query(async ({ ctx }) => {
-        const menuPosition = await ctx.prisma.menus.findMany({
+    getMenuData: publicProcedure
+        .query(async ({ ctx }) => {
+            const date = new Date();
+            const day = date.getDay();
+            const hour = date.getHours();
+            const minute = date.getMinutes();
+            const time = `${hour.toString().length === 1 ? `0${hour}` : hour}:
+            ${minute.toString().length === 1 ? `0${minute}` : minute}`;
+
+            const menuData = await ctx.prisma.menus.findMany({
+                where: {
+                    active: 1,
+                    menuAvailability: {
+                        some: {
+                            dayOfWeek: day,
+                            startTime: {
+                                lte: time,
+                            },
+                            endTime: {
+                                gte: time,
+                            } ,
+                        },
+                    },
+                },
+                include: {
+                    menuAvailability: true,
+                    menuCategoriesMenuMapping: {
+                        where: {
+                            menuCategory: {
+                                menuCategoryAvailability: {
+                                    some: {
+                                        dayOfWeek: day,
+                                        startTime: {
+                                            lte: time,
+                                        },
+                                        endTime: {
+                                            gte: time,
+                                        } ,
+                                    }
+                                }
+                            }
+                        },
+                        orderBy: [{position: "asc"}],
+                        include: {
+                            menuCategory: {
+                                include: {
+                                    menuCategoryAvailability: true,
+                                    menuCategoryItems: {
+                                        orderBy: [{position: "asc"}],
+                                        include: {
+                                            item: {
+                                                include: {
+                                                    itemChoiceMapping: {
+                                                        include: {
+                                                            choice: {
+                                                                include: {
+                                                                    choiceItems: {
+                                                                        include: {
+                                                                            childItem: true,
+                                                                        },
+                                                                    },
+                                                                },
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    }
+                                },
+                            },
+                        },
+                    },
+                },
+                take: 1,
+            });
+
+            return menuData;
+        }),
+
+    getAllMenuNames: publicProcedure.query(async ({ ctx }) => {
+        const menuNames = await ctx.prisma.menus.findMany({
             where: {
                 active: 1,
             },
             select: {
-                position: true,
+                menuName: true,
+            }
+        });
+
+        return menuNames;
+    }),
+
+    getLatestMenuId: publicProcedure.query(async ({ ctx }) => {
+        const latestMenuId = await ctx.prisma.menus.findMany({
+            where: {
+                active: 1,
             },
-            orderBy: [{ position: "desc"}],
+            select: {
+                id: true,
+            },
+            orderBy: [{ id: "desc"}],
             take: 1,
         });
 
-        return menuPosition;
+        return latestMenuId;
     }),
 
     createMenu: privateProcedure
         .input(
             z.object({
                 name: z.string().min(1).max(50),
+                displayName: z.string().min(1).max(50),
                 menuType: z.number().min(1),
                 priceLevel: z.number().min(1),
-                position: z.number().min(0),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.userId;
             const updatedUserId = ctx.userId;
 
-            const createPost = await ctx.prisma.menus.create({
+            const createMenu = await ctx.prisma.menus.create({
                 data: {
                     userId,
                     updatedUserId,
                     menuName: input.name,
+                    menuDisplayName: input.displayName,
                     menuType: input.menuType,
                     priceLevel: input.priceLevel,
-                    position: input.position,
                 },
             });
 
-            return createPost;
+            return createMenu;
         }),
     
     deleteMenu: privateProcedure
@@ -115,6 +222,7 @@ export const menuRouter = createTRPCRouter({
             z.object({
                 id: z.number().min(1),
                 name: z.string().min(1).max(50),
+                displayName: z.string().min(1).max(50),
                 menuType: z.number().min(1),
                 priceLevel: z.number().min(1),
             }),
@@ -128,6 +236,7 @@ export const menuRouter = createTRPCRouter({
                 },
                 data: {
                     menuName: input.name,
+                    menuDisplayName: input.displayName,
                     menuType: input.menuType,
                     priceLevel: input.priceLevel,
                     updatedUserId
@@ -137,33 +246,10 @@ export const menuRouter = createTRPCRouter({
             return updateMenu;
         }),
 
-    updateMenuPosition: privateProcedure
-        .input(
-            z.object({
-                id: z.number().min(1),
-                position: z.number().min(0),
-            }),
-        )
-        .mutation(async ({ ctx, input }) => {
-            const updatedUserId = ctx.userId;
-
-            const updateMenuPosition = await ctx.prisma.menus.update({
-                where: {
-                    id: input.id,
-                },
-                data: {
-                    updatedUserId,
-                    position: input.position,
-                },
-            });
-
-            return updateMenuPosition;
-        }),
-
     getMenuAvailabilityRuleByMenuId: publicProcedure
         .input(
             z.object({
-                id: z.number().min(-1),
+                id: z.number().min(0),
             }),
         )
         .query(async ({ ctx, input }) => {
@@ -184,7 +270,6 @@ export const menuRouter = createTRPCRouter({
                 day: z.number().min(0),
                 startTime: z.string().min(4).max(5),
                 endTime: z.string().min(4).max(5),
-                available: z.boolean(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -194,7 +279,6 @@ export const menuRouter = createTRPCRouter({
                     dayOfWeek: input.day,
                     startTime: input.startTime,
                     endTime: input.endTime,
-                    available: input.available,
                 },
             });
 

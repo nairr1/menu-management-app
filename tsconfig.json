@@ -28,6 +28,6 @@
     "**/*.tsx",
     "**/*.cjs",
     "**/*.mjs"
-  ],
+, "src/pages/admin/item-classestsx"  ],
   "exclude": ["node_modules"]
 }

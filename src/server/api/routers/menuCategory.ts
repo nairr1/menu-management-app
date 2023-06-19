@@ -20,6 +20,14 @@ export const menuCategoryRouter = createTRPCRouter({
             where: {
                 active: 1,
             },
+            include: {
+                menuCategoryAvailability: true,
+                menuCategoryItems: {
+                    include: {
+                        item: true,
+                    },
+                },
+            },
             orderBy: [{ position: "asc"}]
         });
 
@@ -47,6 +55,20 @@ export const menuCategoryRouter = createTRPCRouter({
         });
     }),
 
+    getAllMenuCategoriesForDropdown: publicProcedure.query(async ({ ctx }) => {
+        const menuCategories = await ctx.prisma.menuCategories.findMany({
+            select: {
+                id: true,
+                menuCategoryName: true,
+            },
+            where: {
+                active: 1,
+            },
+        })
+
+        return menuCategories;
+    }),
+
     getLatestMenuCategoryPosition: publicProcedure.query(async ({ ctx }) => {
         const menuCategoryPosition = await ctx.prisma.menuCategories.findMany({
             where: {
@@ -62,11 +84,28 @@ export const menuCategoryRouter = createTRPCRouter({
         return menuCategoryPosition;
     }),
 
+    getLatestMenuCategoryId: publicProcedure.query(async ({ ctx }) => {
+        const latestMenuCategoryId = await ctx.prisma.menuCategories.findMany({
+            where: {
+                active: 1,
+            },
+            select: {
+                id: true,
+            },
+            orderBy: [{ id: "desc"}],
+            take: 1,
+        });
+
+        return latestMenuCategoryId;
+    }),
+
     createMenuCategory: privateProcedure
         .input(
             z.object({
                 name: z.string().min(1).max(50),
+                displayName: z.string().min(1).max(50),
                 position: z.number().min(0),
+                description: z.string().min(1).max(255)
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -78,7 +117,9 @@ export const menuCategoryRouter = createTRPCRouter({
                     userId,
                     updatedUserId,
                     menuCategoryName: input.name,
+                    menuCategoryDisplayName: input.displayName, 
                     position: input.position,
+                    description: input.description
                 },
             });
 
@@ -109,6 +150,8 @@ export const menuCategoryRouter = createTRPCRouter({
             z.object({
                 id: z.number().min(1),
                 name: z.string().min(1).max(50),
+                displayName: z.string().min(1).max(50),
+                description: z.string().min(1).max(255)
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -120,6 +163,8 @@ export const menuCategoryRouter = createTRPCRouter({
                 },
                 data: {
                     menuCategoryName: input.name,
+                    menuCategoryDisplayName: input.displayName,
+                    description: input.description,
                     updatedUserId
                 },
             });
@@ -153,7 +198,7 @@ export const menuCategoryRouter = createTRPCRouter({
     getMenuCategoryAvailabilityRuleById: publicProcedure
         .input(
             z.object({
-                id: z.number().min(-1),
+                id: z.number().min(1),
             }),
         )
         .query(async ({ ctx, input }) => {
@@ -174,7 +219,6 @@ export const menuCategoryRouter = createTRPCRouter({
                 day: z.number().min(0),
                 startTime: z.string().min(4).max(5),
                 endTime: z.string().min(4).max(5),
-                available: z.boolean(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -184,7 +228,6 @@ export const menuCategoryRouter = createTRPCRouter({
                     dayOfWeek: input.day,
                     startTime: input.startTime,
                     endTime: input.endTime,
-                    available: input.available,
                 },
             });
 

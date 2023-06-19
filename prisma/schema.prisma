@@ -14,9 +14,9 @@ datasource db {
 model Menus {
     id                          Int @id @default(autoincrement())
     active                      Int @default(1)
-    menuName                    String @db.VarChar(50)
+    menuName                    String @unique @db.VarChar(50)
+    menuDisplayName             String @db.VarChar(50)
     menuType                    Int
-    position                    Int
     priceLevel                  Int
     updatedUserId               String @db.VarChar(255)             
     userId                      String @db.VarChar(255)
@@ -34,7 +34,6 @@ model MenuAvailability {
     dayOfWeek   Int
     startTime   String @db.VarChar(5)
     endTime     String @db.VarChar(5)
-    available   Boolean
 }
 
 model MenuLocationMapping {
@@ -48,7 +47,9 @@ model MenuLocationMapping {
 model MenuCategories {
     id                          Int @id @default(autoincrement())
     active                      Int @default(1)
-    menuCategoryName            String @db.VarChar(50)
+    menuCategoryName            String @unique @db.VarChar(50)
+    menuCategoryDisplayName     String @db.VarChar(50)
+    description                 String @db.VarChar(255)
     position                    Int
     userId                      String @db.VarChar(255)
     updatedUserId               String @db.VarChar(255)           
@@ -66,6 +67,9 @@ model MenuCategoriesMenuMapping {
     menuId          Int
     menuCategory    MenuCategories @relation(fields: [menuCategoryId], references: [id]) 
     menuCategoryId  Int
+    position        Int
+    userId          String @db.VarChar(255)
+    createdAt       DateTime @default(now())
 }
 
 model MenuCategoryAvailability {
@@ -75,7 +79,6 @@ model MenuCategoryAvailability {
     dayOfWeek       Int
     startTime       String @db.VarChar(5)
     endTime         String @db.VarChar(5)
-    available       Boolean
 }
 
 model MenuCategoryLocationMapping {
@@ -93,34 +96,46 @@ model MenuCategoryItems {
     item            Items @relation(fields: [itemId], references: [id])
     itemId          Int
     position        Int
+    userId          String @db.VarChar(255)       
+    createdAt       DateTime @default(now())
 }
 
 model Items {
-    id                  Int @id @default(autoincrement())
-    active              Int @default(1)
-    itemName            String @db.VarChar(50)
-    priceLevelOne       Int
-    priceLevelTwo       Int? 
-    priceLevelThree     Int?
-    description         String @db.VarChar(255)
-    image               String @db.VarChar(255)
-    category            ItemCategories @relation(fields: [categoryId], references: [id])
-    categoryId          Int
-    userId              String @db.VarChar(255)
-    updatedUserId       String @db.VarChar(255)           
-    createdAt           DateTime @default(now())
-    updatedAt           DateTime @updatedAt
-    itemRecipeMapping   ItemRecipeMapping[]
-    itemChoiceMapping   ItemChoiceMapping[]
-    choiceItems         ChoiceItems[]
-    itemLocationMapping ItemLocationMapping[]
-    menuCategoryItems   MenuCategoryItems[]
+    id                      Int @id @default(autoincrement())
+    active                  Int @default(1)
+    itemName                String @unique @db.VarChar(50)
+    itemDisplayName         String @db.VarChar(50)
+    priceLevelOne           String @db.VarChar(100)
+    priceLevelTwo           String @db.VarChar(100)
+    priceLevelThree         String @db.VarChar(100) 
+    awardedPointsOne        Int
+    awardedPointsTwo        Int
+    awardedPointsThree      Int 
+    redemptionPointsOne     Int
+    redemptionPointsTwo     Int
+    redemptionPointsThree   Int 
+    description             String @db.VarChar(255)
+    image                   String @db.VarChar(255)
+    category                ItemCategories @relation(fields: [categoryId], references: [id])
+    categoryId              Int
+    class                   ItemClasses @relation(fields: [classId], references: [id])
+    classId                 Int
+    energy                  Int
+    userId                  String @db.VarChar(255)
+    updatedUserId           String @db.VarChar(255)           
+    createdAt               DateTime @default(now())
+    updatedAt               DateTime @updatedAt
+    itemRecipeMapping       ItemRecipeMapping[]
+    itemChoiceMapping       ItemChoiceMapping[]
+    choiceItems             ChoiceItems[]
+    itemLocationMapping     ItemLocationMapping[]
+    menuCategoryItems       MenuCategoryItems[]
 }
 
 model Ingredients {
     id                  Int @id @default(autoincrement())
     active              Int @default(1)
-    ingredientName      String @db.VarChar(50)
+    ingredientName      String @unique @db.VarChar(50)
     amount              Int
     unit                Int
     itemRecipeMapping   ItemRecipeMapping[]
@@ -137,7 +152,8 @@ model ItemRecipeMapping {
 model Choices {
     id                  Int @id @default(autoincrement())
     active              Int @default(1)
-    choiceName          String @db.VarChar(50)
+    choiceName          String @unique @db.VarChar(50)
+    choiceDisplayName   String @db.VarChar(50)
     selections          Int
     required            Boolean
     position            Int
@@ -156,6 +172,9 @@ model ItemChoiceMapping {
     choiceId        Int
     parentItem      Items @relation(fields: [parentItemId], references: [id])
     parentItemId    Int
+    position        Int
+    userId          String @db.VarChar(255)          
+    createdAt       DateTime @default(now())
 }
 
 model ChoiceItems {
@@ -164,10 +183,12 @@ model ChoiceItems {
     childItemId             Int
     choice                  Choices @relation(fields: [choiceId], references: [id])
     choiceId                Int
-    updatedPriceLevelOne    Int?
-    updatedPriceLevelTwo    Int?
-    updatedPriceLevelThree  Int?
+    updatedPriceLevelOne    String @db.VarChar(100)
+    updatedPriceLevelTwo    String @db.VarChar(100)
+    updatedPriceLevelThree  String @db.VarChar(100)
     position                Int
+    userId                  String @db.VarChar(255)     
+    createdAt               DateTime @default(now())
 }
 
 model ItemLocationMapping {
@@ -184,7 +205,19 @@ model ItemLocationMapping {
 model ItemCategories {
     id              Int @id @default(autoincrement())
     active          Int @default(1)
-    categoryName    String @db.VarChar(50)
+    categoryName    String @unique @db.VarChar(50)
+    userId          String @db.VarChar(255)
+    updatedUserId   String @db.VarChar(255)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    items           Items[]
+}
+
+model ItemClasses {
+    id              Int @id @default(autoincrement())
+    active          Int @default(1)
+    className       String @unique @db.VarChar(50)
+    position        Int
     userId          String @db.VarChar(255)
     updatedUserId   String @db.VarChar(255)             
     createdAt       DateTime @default(now())
@@ -194,8 +227,9 @@ model ItemCategories {
 
 model Locations {
     id                              Int @id @default(autoincrement())
+    uuid                            String @unique @default(uuid())
     active                          Int @default(1)
-    locationName                    String @db.VarChar(50)
+    locationName                    String @unique @db.VarChar(50)
     streetOne                       String @db.VarChar(50)
     streetTwo                       String? @db.VarChar(50)
     suburb                          String @db.VarChar(50)
@@ -272,7 +306,7 @@ model PublicHolidayLocationMapping {
 
 model OrderHeader {
     id              Int @id @default(autoincrement())
-    uuid            String @db.VarChar(36)
+    uuid            String @unique @db.VarChar(36)
     memberId        String? @db.VarChar(255)
     location        Locations @relation(fields: [locationId], references: [id])
     locationId      Int

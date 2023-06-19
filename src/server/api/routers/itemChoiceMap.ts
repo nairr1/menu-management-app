@@ -14,32 +14,32 @@ const filterUserForClient = (user: User) => {
     };
 };
 
-export const menuCategoryMapRouter = createTRPCRouter({
-    getMappedMenuCategoriesByMenuId: publicProcedure
+export const itemChoiceMapRouter = createTRPCRouter({
+    getMappedItemChoicesByItemId: publicProcedure
         .input(
             z.object({
                 id: z.number().min(0),
             }),
         )
         .query(async ({ ctx, input }) => {
-            const mappedMenuCategory = await ctx.prisma.menuCategoriesMenuMapping.findMany({
+            const mappedItemChoice = await ctx.prisma.itemChoiceMapping.findMany({
                 where: {
-                    menuId: input.id,
+                    parentItemId: input.id,
                 },
                 include: {
-                    menuCategory: true,
+                    choice: true,
                 },
                 orderBy: [{ position: "asc" }]
             });
 
             const users = (
                 await clerkClient.users.getUserList({
-                    userId: mappedMenuCategory.map((menuCategory) => menuCategory.userId),
+                    userId: mappedItemChoice.map((itemChoice) => itemChoice.userId),
                 })
             ).map(filterUserForClient);
 
-            return mappedMenuCategory.map((menuCategory) => {
-                const user = users.find((user) => user.id === menuCategory.userId);
+            return mappedItemChoice.map((itemChoice) => {
+                const user = users.find((user) => user.id === itemChoice.userId);
     
                 if (!user) 
                     throw new TRPCError({
@@ -48,34 +48,34 @@ export const menuCategoryMapRouter = createTRPCRouter({
                     });
     
                 return {
-                    menuCategory,
-                    user: users.find((user) => user.id === menuCategory.userId),
+                    itemChoice,
+                    user: users.find((user) => user.id === itemChoice.userId),
                 };
             });
         }),
 
-    getLatestMappedMenuCategoryPosition: publicProcedure
+    getLatestMappedItemChoicePosition: publicProcedure
         .input(
             z.object({
                 id: z.number().min(0),
             }),
         )
         .query(async ({ ctx, input }) => {
-            const mappedMenuCategoryPosition = await ctx.prisma.menuCategoriesMenuMapping.findMany({
+            const mappedItemChoicePosition = await ctx.prisma.itemChoiceMapping.findMany({
                 select: {
                     position: true,
                 },
                 where: {
-                    menuId: input.id,
+                    parentItemId: input.id,
                 },
                 orderBy: [{ position: "desc"}],
                 take: 1,
             });
 
-            return mappedMenuCategoryPosition;
+            return mappedItemChoicePosition;
         }),
 
-    updateMappedMenuCategoryPosition: privateProcedure
+    updateMappedItemChoicePosition: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
@@ -83,7 +83,9 @@ export const menuCategoryMapRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const updateMappedMenuCategoryPosition = await ctx.prisma.menuCategoriesMenuMapping.update({
+            const updatedUserId = ctx.userId;
+
+            const updateMappedItemChoicePosition = await ctx.prisma.itemChoiceMapping.update({
                 where: {
                     id: input.id,
                 },
@@ -92,45 +94,46 @@ export const menuCategoryMapRouter = createTRPCRouter({
                 },
             });
 
-            return updateMappedMenuCategoryPosition;
+            return updateMappedItemChoicePosition;
         }),
 
-    createMappedMenuCategory: privateProcedure
+    createMappedItemChoice: privateProcedure
         .input(
             z.object({
-                menuId: z.number().min(1),
-                menuCategoryId: z.number().min(1),
+                choiceId: z.number().min(1),
+                itemId: z.number().min(1),
                 position: z.number().min(0),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.userId;
 
-            const createMappedMenuCategory = await ctx.prisma.menuCategoriesMenuMapping.create({
+            const createMappedItemChoice = await ctx.prisma.itemChoiceMapping.create({
                 data: {
                     userId,
-                    menuId: input.menuId,
-                    menuCategoryId: input.menuCategoryId,
+                    choiceId: input.choiceId,
+                    parentItemId: input.itemId,
                     position: input.position,
                 },
             });
 
-            return createMappedMenuCategory;
+            return createMappedItemChoice;
         }),
 
-    deleteMappedMenuCategory: privateProcedure
+    deleteMappedItemChoice: privateProcedure
         .input(
             z.object({
                 id: z.number().min(1),
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const deleteMappedMenuCategory = await ctx.prisma.menuCategoriesMenuMapping.delete({
+            const deleteMappedItemChoice = await ctx.prisma.itemChoiceMapping.delete({
                 where: {
                     id: input.id,
                 },
             });
 
-            return deleteMappedMenuCategory;
+            return deleteMappedItemChoice
         }),
+    
 });
